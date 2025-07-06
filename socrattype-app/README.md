@@ -1,4 +1,4 @@
-# SocratType - Modern Typing Test App
+# SocratType - Typing Test App
 
 A modern, responsive typing test application built with React, TypeScript, and Tailwind CSS. Perfect for improving your typing speed and accuracy with a beautiful, intuitive interface.
 
