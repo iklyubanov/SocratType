@@ -1,229 +1,273 @@
-import { motion } from 'framer-motion'
-import { X, Clock, Target, FileText, Moon, Sun, Volume2, VolumeX } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, Moon, Sun, Volume2, VolumeX, Clock, Target, FileText } from 'lucide-react'
+
+interface TestSettings {
+  mode: 'time' | 'words' | 'custom'
+  timeLimit: number
+  wordCount: number
+  customText: string
+  theme: 'dark' | 'light'
+  soundEnabled: boolean
+}
 
 interface SettingsPanelProps {
-  settings: {
-    mode: 'time' | 'words' | 'custom'
-    timeLimit: number
-    wordCount: number
-    customText: string
-    theme: 'dark' | 'light'
-    soundEnabled: boolean
-  }
-  onSettingsChange: (settings: any) => void
+  settings: TestSettings
+  onSettingsChange: (settings: TestSettings) => void
   onClose: () => void
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onSettingsChange, onClose }) => {
-  const updateSetting = (key: string, value: any) => {
+  const updateSetting = <K extends keyof TestSettings>(key: K, value: TestSettings[K]) => {
     onSettingsChange({ ...settings, [key]: value })
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <AnimatePresence>
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-gray-800 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onClick={onClose}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-100">Settings</h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          {/* Test Mode */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-100 mb-3">Test Mode</h3>
-            <div className="space-y-3">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="time"
-                  checked={settings.mode === 'time'}
-                  onChange={(e) => updateSetting('mode', e.target.value)}
-                  className="w-4 h-4 text-primary-600 bg-gray-700 border-gray-600 focus:ring-primary-500"
-                />
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5 text-primary-400" />
-                  <span className="text-gray-300">Time Mode</span>
-                </div>
-              </label>
-
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="words"
-                  checked={settings.mode === 'words'}
-                  onChange={(e) => updateSetting('mode', e.target.value)}
-                  className="w-4 h-4 text-primary-600 bg-gray-700 border-gray-600 focus:ring-primary-500"
-                />
-                <div className="flex items-center space-x-2">
-                  <Target className="w-5 h-5 text-primary-400" />
-                  <span className="text-gray-300">Word Count</span>
-                </div>
-              </label>
-
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="custom"
-                  checked={settings.mode === 'custom'}
-                  onChange={(e) => updateSetting('mode', e.target.value)}
-                  className="w-4 h-4 text-primary-600 bg-gray-700 border-gray-600 focus:ring-primary-500"
-                />
-                <div className="flex items-center space-x-2">
-                  <FileText className="w-5 h-5 text-primary-400" />
-                  <span className="text-gray-300">Custom Text</span>
-                </div>
-              </label>
-            </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border p-6 bg-white border-gray-200 text-gray-900 shadow-xl dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Settings
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg transition-colors text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {/* Time Limit */}
-          {settings.mode === 'time' && (
+          <div className="space-y-8">
+            {/* Test Mode */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Time Limit (seconds)
-              </label>
-              <select
-                value={settings.timeLimit}
-                onChange={(e) => updateSetting('timeLimit', parseInt(e.target.value))}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value={15}>15 seconds</option>
-                <option value={30}>30 seconds</option>
-                <option value={60}>1 minute</option>
-                <option value={120}>2 minutes</option>
-                <option value={300}>5 minutes</option>
-              </select>
-            </div>
-          )}
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                Test Mode
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button
+                  onClick={() => updateSetting('mode', 'time')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    settings.mode === 'time'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <Clock className={`w-6 h-6 mb-2 ${
+                    settings.mode === 'time' ? 'text-primary-400' : 'text-gray-600 dark:text-gray-400'
+                  }`} />
+                  <div className={`font-semibold ${
+                    settings.mode === 'time' ? 'text-primary-400' : 'text-gray-900 dark:text-gray-100'
+                  }`}>
+                    Time Mode
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Race against the clock
+                  </div>
+                </button>
 
-          {/* Word Count */}
-          {settings.mode === 'words' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Word Count
-              </label>
-              <select
-                value={settings.wordCount}
-                onChange={(e) => updateSetting('wordCount', parseInt(e.target.value))}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value={10}>10 words</option>
-                <option value={25}>25 words</option>
-                <option value={50}>50 words</option>
-                <option value={100}>100 words</option>
-                <option value={200}>200 words</option>
-              </select>
-            </div>
-          )}
+                <button
+                  onClick={() => updateSetting('mode', 'words')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    settings.mode === 'words'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <Target className={`w-6 h-6 mb-2 ${
+                    settings.mode === 'words' ? 'text-primary-400' : 'text-gray-600 dark:text-gray-400'
+                  }`} />
+                  <div className={`font-semibold ${
+                    settings.mode === 'words' ? 'text-primary-400' : 'text-gray-900 dark:text-gray-100'
+                  }`}>
+                    Word Count
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Type specific words
+                  </div>
+                </button>
 
-          {/* Custom Text */}
-          {settings.mode === 'custom' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Custom Text
-              </label>
-              <textarea
-                value={settings.customText}
-                onChange={(e) => updateSetting('customText', e.target.value)}
-                placeholder="Enter your custom text here..."
-                rows={4}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-              />
-            </div>
-          )}
-
-          {/* Theme */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-100 mb-3">Theme</h3>
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="theme"
-                  value="dark"
-                  checked={settings.theme === 'dark'}
-                  onChange={(e) => updateSetting('theme', e.target.value)}
-                  className="w-4 h-4 text-primary-600 bg-gray-700 border-gray-600 focus:ring-primary-500"
-                />
-                <div className="flex items-center space-x-2">
-                  <Moon className="w-5 h-5 text-primary-400" />
-                  <span className="text-gray-300">Dark</span>
-                </div>
-              </label>
-
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="radio"
-                  name="theme"
-                  value="light"
-                  checked={settings.theme === 'light'}
-                  onChange={(e) => updateSetting('theme', e.target.value)}
-                  className="w-4 h-4 text-primary-600 bg-gray-700 border-gray-600 focus:ring-primary-500"
-                />
-                <div className="flex items-center space-x-2">
-                  <Sun className="w-5 h-5 text-primary-400" />
-                  <span className="text-gray-300">Light</span>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          {/* Sound */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-100 mb-3">Sound</h3>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.soundEnabled}
-                onChange={(e) => updateSetting('soundEnabled', e.target.checked)}
-                className="w-4 h-4 text-primary-600 bg-gray-700 border-gray-600 rounded focus:ring-primary-500"
-              />
-              <div className="flex items-center space-x-2">
-                {settings.soundEnabled ? (
-                  <Volume2 className="w-5 h-5 text-primary-400" />
-                ) : (
-                  <VolumeX className="w-5 h-5 text-gray-400" />
-                )}
-                <span className="text-gray-300">Enable sound effects</span>
+                <button
+                  onClick={() => updateSetting('mode', 'custom')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    settings.mode === 'custom'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <FileText className={`w-6 h-6 mb-2 ${
+                    settings.mode === 'custom' ? 'text-primary-400' : 'text-gray-600 dark:text-gray-400'
+                  }`} />
+                  <div className={`font-semibold ${
+                    settings.mode === 'custom' ? 'text-primary-400' : 'text-gray-900 dark:text-gray-100'
+                  }`}>
+                    Custom Text
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Your own content
+                  </div>
+                </button>
               </div>
-            </label>
-          </div>
+            </div>
 
-          {/* Coming Soon */}
-          <div className="border-t border-gray-700 pt-6">
-            <h3 className="text-lg font-semibold text-gray-100 mb-3">Coming Soon</h3>
-            <div className="space-y-2 text-sm text-gray-400">
-              <p>• AI-generated text in your preferred style</p>
-              <p>• Custom themes and color schemes</p>
-              <p>• Detailed analytics and progress tracking</p>
-              <p>• Multiplayer typing competitions</p>
-              <p>• Mobile-optimized interface</p>
+            {/* Mode-specific settings */}
+            {settings.mode === 'time' && (
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Time Limit (seconds)
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[30, 60, 120, 300].map((time) => (
+                    <button
+                      key={time}
+                      onClick={() => updateSetting('timeLimit', time)}
+                      className={`py-2 px-4 rounded-lg border transition-colors ${
+                        settings.timeLimit === time
+                          ? 'border-primary-500 bg-primary-500 text-white'
+                          : 'border-gray-300 text-gray-700 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      {time}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {settings.mode === 'words' && (
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Word Count
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[10, 25, 50, 100].map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => updateSetting('wordCount', count)}
+                      className={`py-2 px-4 rounded-lg border transition-colors ${
+                        settings.wordCount === count
+                          ? 'border-primary-500 bg-primary-500 text-white'
+                          : 'border-gray-300 text-gray-700 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {settings.mode === 'custom' && (
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Custom Text
+                </label>
+                <textarea
+                  value={settings.customText}
+                  onChange={(e) => updateSetting('customText', e.target.value)}
+                  placeholder="Enter your custom text here..."
+                  className="w-full h-32 p-3 border border-gray-300 rounded-lg resize-none bg-white text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            )}
+
+            {/* Theme Settings */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                Appearance
+              </h3>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => updateSetting('theme', 'light')}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border-2 transition-all ${
+                    settings.theme === 'light'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <Sun className={`w-5 h-5 ${
+                    settings.theme === 'light' ? 'text-primary-400' : 'text-gray-600 dark:text-gray-400'
+                  }`} />
+                  <span className={`font-medium ${
+                    settings.theme === 'light' ? 'text-primary-400' : 'text-gray-900 dark:text-gray-100'
+                  }`}>
+                    Light
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => updateSetting('theme', 'dark')}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border-2 transition-all ${
+                    settings.theme === 'dark'
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <Moon className={`w-5 h-5 ${
+                    settings.theme === 'dark' ? 'text-primary-400' : 'text-gray-600 dark:text-gray-400'
+                  }`} />
+                  <span className={`font-medium ${
+                    settings.theme === 'dark' ? 'text-primary-400' : 'text-gray-900 dark:text-gray-100'
+                  }`}>
+                    Dark
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Sound Settings */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                Sound
+              </h3>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => updateSetting('soundEnabled', !settings.soundEnabled)}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border-2 transition-all ${
+                    settings.soundEnabled
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                  }`}
+                >
+                  {settings.soundEnabled ? (
+                    <Volume2 className="w-5 h-5 text-primary-400" />
+                  ) : (
+                    <VolumeX className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  )}
+                  <span className={`font-medium ${
+                    settings.soundEnabled ? 'text-primary-400' : 'text-gray-900 dark:text-gray-100'
+                  }`}>
+                    {settings.soundEnabled ? 'Sound On' : 'Sound Off'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Footer */}
+          <div className="flex justify-end mt-8 pt-6 border-t border-gray-700">
+            <button
+              onClick={onClose}
+              className="btn-primary px-6 py-2"
+            >
+              Done
+            </button>
+          </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
+    </AnimatePresence>
   )
 }
 

@@ -31,7 +31,7 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
     if (wpm >= 80) return 'text-green-400'
     if (wpm >= 60) return 'text-yellow-400'
     if (wpm >= 40) return 'text-blue-400'
-    return 'text-gray-400'
+    return 'text-gray-600 dark:text-gray-400'
   }
 
   const getPerformanceMessage = () => {
@@ -42,7 +42,7 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
     } else if (stats.wpm >= 40 && stats.accuracy >= 85) {
       return { message: "Good progress! Focus on accuracy.", icon: Target, color: "text-blue-400" }
     } else {
-      return { message: "Keep practicing! Speed and accuracy will improve.", icon: Zap, color: "text-gray-400" }
+      return { message: "Keep practicing! Speed and accuracy will improve.", icon: Zap, color: 'text-gray-600 dark:text-gray-400' }
     }
   }
 
@@ -61,7 +61,7 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-          className="inline-flex items-center justify-center w-16 h-16 bg-gray-800 rounded-full mb-4"
+          className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 bg-gray-100 dark:bg-gray-800"
         >
           <PerformanceIcon className={`w-8 h-8 ${performance.color}`} />
         </motion.div>
@@ -84,7 +84,7 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
           <div className={`text-3xl font-bold ${getWpmColor(stats.wpm)}`}>
             {stats.wpm}
           </div>
-          <div className="text-gray-400 text-sm">WPM</div>
+          <div className="text-gray-600 dark:text-gray-400 text-sm">WPM</div>
         </motion.div>
 
         <motion.div
@@ -99,7 +99,7 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
           <div className={`text-3xl font-bold ${getAccuracyColor(stats.accuracy)}`}>
             {stats.accuracy}%
           </div>
-          <div className="text-gray-400 text-sm">Accuracy</div>
+          <div className="text-gray-600 dark:text-gray-400 text-sm">Accuracy</div>
         </motion.div>
 
         <motion.div
@@ -111,10 +111,10 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
           <div className="flex items-center justify-center mb-3">
             <Clock className="w-6 h-6 text-primary-400" />
           </div>
-          <div className="text-3xl font-bold text-gray-100">
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {formatTime(stats.timeElapsed)}
           </div>
-          <div className="text-gray-400 text-sm">Time</div>
+          <div className="text-gray-600 dark:text-gray-400 text-sm">Time</div>
         </motion.div>
 
         <motion.div
@@ -126,10 +126,10 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
           <div className="flex items-center justify-center mb-3">
             <TrendingUp className="w-6 h-6 text-primary-400" />
           </div>
-          <div className="text-3xl font-bold text-gray-100">
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {stats.charactersTyped}
           </div>
-          <div className="text-gray-400 text-sm">Characters</div>
+          <div className="text-gray-600 dark:text-gray-400 text-sm">Characters</div>
         </motion.div>
       </div>
 
@@ -140,26 +140,26 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
         transition={{ delay: 0.5 }}
         className="card"
       >
-        <h3 className="text-lg font-semibold mb-4 text-gray-100">Detailed Results</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Detailed Results</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-400">Total Errors:</span>
+            <span className="text-gray-600 dark:text-gray-400">Total Errors:</span>
             <span className="text-red-400 font-mono">{stats.errors}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Characters per Minute:</span>
-            <span className="text-gray-100 font-mono">
+            <span className="text-gray-600 dark:text-gray-400">Characters per Minute:</span>
+            <span className="font-mono text-gray-900 dark:text-gray-100">
               {stats.timeElapsed > 0 ? Math.round((stats.charactersTyped / stats.timeElapsed) * 60000) : 0}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Average Word Length:</span>
-            <span className="text-gray-100 font-mono">
+            <span className="text-gray-600 dark:text-gray-400">Average Word Length:</span>
+            <span className="font-mono text-gray-900 dark:text-gray-100">
               {stats.charactersTyped > 0 ? Math.round(stats.charactersTyped / (stats.wpm || 1)) : 0}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Error Rate:</span>
+            <span className="text-gray-600 dark:text-gray-400">Error Rate:</span>
             <span className="text-red-400 font-mono">
               {stats.charactersTyped > 0 ? ((stats.errors / stats.charactersTyped) * 100).toFixed(1) : 0}%
             </span>
@@ -196,7 +196,7 @@ const Stats: React.FC<StatsProps> = ({ stats, onRestart, onNewTest }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
-        className="text-center text-gray-400 text-sm"
+        className="text-center text-sm text-gray-600 dark:text-gray-400"
       >
         <p>
           💡 Tip: Practice regularly to improve your typing speed and accuracy. 
