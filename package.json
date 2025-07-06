@@ -1,0 +1,28 @@
+{
+  "name": "socrattype",
+  "version": "1.0.0",
+  "description": "A modern typing test application with AI-generated text",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cd socrattype-app && npm run dev",
+    "build": "cd socrattype-app && npm run build",
+    "preview": "cd socrattype-app && npm run preview",
+    "install-deps": "cd socrattype-app && npm install",
+    "start": "npm run dev"
+  },
+  "keywords": [
+    "typing",
+    "test",
+    "speed",
+    "accuracy",
+    "react",
+    "typescript",
+    "tailwind"
+  ],
+  "author": "SocratType Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/socrattype.git"
+  }
+} 
