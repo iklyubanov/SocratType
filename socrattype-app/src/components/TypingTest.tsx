@@ -46,6 +46,13 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
   const inputRef = useRef<HTMLInputElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Helper function to properly count words
+  const countWords = (input: string): number => {
+    const trimmed = input.trim()
+    if (trimmed === '') return 0
+    return trimmed.split(/\s+/).length
+  }
+
   // Generate text based on settings
   useEffect(() => {
     let generatedText = ''
@@ -80,11 +87,12 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
   // Timer logic
   useEffect(() => {
+    console.log('Timer useEffect:', { startTime, isPaused, isFinished, timeElapsed })
     if (startTime && !isPaused && !isFinished) {
       intervalRef.current = setInterval(() => {
         const elapsed = Date.now() - startTime
         setTimeElapsed(elapsed)
-        
+        console.log('Timer tick:', elapsed)
         // Check if time limit reached
         if (settings.mode === 'time' && elapsed >= settings.timeLimit * 1000) {
           finishTest()
@@ -103,8 +111,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
   // Calculate WPM and accuracy
   useEffect(() => {
+    console.log('WPM/Accuracy useEffect:', { userInput, errors, timeElapsed, startTime })
     if (startTime && timeElapsed > 0) {
-      const wordsTyped = userInput.trim().split(/\s+/).length
+      const wordsTyped = countWords(userInput)
       const minutes = timeElapsed / 60000
       const calculatedWpm = minutes > 0 ? Math.round(wordsTyped / minutes) : 0
       setWpm(calculatedWpm)
@@ -117,6 +126,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
   }, [userInput, errors, timeElapsed, startTime])
 
   const startTest = useCallback(() => {
+    console.log('startTest called')
     setStartTime(Date.now())
     setTimeElapsed(0)
     setIsPaused(false)
@@ -154,15 +164,13 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    
+    console.log('Input changed:', value)
     if (!startTime && value.length > 0) {
+      console.log('Calling startTest()')
       startTest()
     }
-    
     if (isFinished) return
-    
     setUserInput(value)
-    
     // Check for errors
     let newErrors = 0
     for (let i = 0; i < value.length; i++) {
@@ -171,10 +179,9 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
       }
     }
     setErrors(newErrors)
-    
     // Check if test is complete
     if (settings.mode === 'words') {
-      const wordsTyped = value.trim().split(/\s+/).length
+      const wordsTyped = countWords(value)
       if (wordsTyped >= settings.wordCount) {
         finishTest()
       }
@@ -191,7 +198,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
   const getProgressPercentage = () => {
     if (settings.mode === 'words') {
-      const wordsTyped = userInput.trim().split(/\s+/).length
+      const wordsTyped = countWords(userInput)
       return Math.min((wordsTyped / settings.wordCount) * 100, 100)
     } else {
       return Math.min((userInput.length / text.length) * 100, 100)
@@ -303,7 +310,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
             </span>
             <span className={settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
               {settings.mode === 'words' 
-                ? `${userInput.trim().split(/\s+/).length}/${settings.wordCount} words`
+                ? `${countWords(userInput)}/${settings.wordCount} words`
                 : `${userInput.length}/${text.length} characters`
               }
             </span>
@@ -411,7 +418,10 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
       {/* Input field */}
       <div className="card p-4">
+        <label htmlFor="typing-input" className="sr-only">Typing Input</label>
         <input
+          id="typing-input"
+          name="typing-input"
           ref={inputRef}
           type="text"
           value={userInput}
