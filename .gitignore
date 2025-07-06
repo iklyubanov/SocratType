@@ -96,4 +96,8 @@ tmp/
 temp/
 
 # Vite
-.vite/ 
+.vite/
+
+# Configuration files
+config.json
+.cursor/config.json
