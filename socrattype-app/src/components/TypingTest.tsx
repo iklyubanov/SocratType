@@ -1,14 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Pause, RotateCcw, Clock, Target } from 'lucide-react'
+import { Pause, Play, RotateCcw } from 'lucide-react'
+
+interface TestSettings {
+  mode: 'time' | 'words' | 'custom'
+  timeLimit: number
+  wordCount: number
+  customText: string
+  theme: 'dark' | 'light'
+  soundEnabled: boolean
+}
 
 interface TypingTestProps {
-  settings: {
-    mode: 'time' | 'words' | 'custom'
-    timeLimit: number
-    wordCount: number
-    customText: string
-  }
+  settings: TestSettings
   onFinish: (stats: {
     wpm: number
     accuracy: number
@@ -19,76 +23,81 @@ interface TypingTestProps {
   onReset: () => void
 }
 
-// Sample text for typing practice
+// Sample texts for different modes
 const sampleTexts = [
   "The quick brown fox jumps over the lazy dog. This pangram contains every letter of the alphabet at least once. Pangrams are often used to display font samples and test keyboards.",
-  "Programming is the art of telling another human being what one wants the computer to do. It requires logical thinking and creative problem-solving skills that can be developed through practice.",
-  "Technology has transformed the way we live and work. From smartphones to artificial intelligence, innovations continue to shape our future. The pace of change accelerates every year.",
-  "Success is not final, failure is not fatal: it is the courage to continue that counts. Every expert was once a beginner who kept practicing and learning from their mistakes.",
-  "The best way to predict the future is to invent it. Innovation comes from combining existing ideas in new ways and being willing to take risks and learn from failures."
+  "Programming is the art of telling another human being what one wants the computer to do. It requires logical thinking and creative problem-solving skills.",
+  "The internet is a global system of interconnected computer networks that use the standard Internet protocol suite to link devices worldwide.",
+  "Artificial intelligence is the simulation of human intelligence in machines that are programmed to think and learn like humans. It has applications in various fields.",
+  "Climate change refers to long-term shifts in global or regional climate patterns. It is primarily caused by human activities such as burning fossil fuels."
 ]
 
 const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) => {
   const [text, setText] = useState('')
   const [userInput, setUserInput] = useState('')
-  const [currentIndex, setCurrentIndex] = useState(0)
   const [errors, setErrors] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
-  const [timeElapsed, setTimeElapsed] = useState(0)
+  const [pauseStartTime, setPauseStartTime] = useState<number | null>(null)
   const [isPaused, setIsPaused] = useState(false)
+  const [timeElapsed, setTimeElapsed] = useState(0)
+  const [wpm, setWpm] = useState(0)
+  const [accuracy, setAccuracy] = useState(100)
   const [isFinished, setIsFinished] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const intervalRef = useRef<NodeJS.Timeout>()
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const finishTest = useCallback(() => {
-    setIsFinished(true)
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-    }
+  // Helper function to properly count words
+  const countWords = (input: string): number => {
+    const trimmed = input.trim()
+    if (trimmed === '') return 0
+    return trimmed.split(/\s+/).length
+  }
 
-    const minutes = timeElapsed / 60000
-    const wordsTyped = userInput.split(' ').length
-    const wpm = minutes > 0 ? Math.round(wordsTyped / minutes) : 0
-    const accuracy = text.length > 0 ? Math.round(((text.length - errors) / text.length) * 100) : 0
-
-    onFinish({
-      wpm,
-      accuracy,
-      timeElapsed,
-      errors,
-      charactersTyped: userInput.length
-    })
-  }, [timeElapsed, userInput, text.length, errors, onFinish])
-
-  // Generate or load text based on settings
+  // Generate text based on settings
   useEffect(() => {
-    let newText = ''
-    if (settings.mode === 'custom' && settings.customText) {
-      newText = settings.customText
+    let generatedText = ''
+    
+    if (settings.mode === 'custom' && settings.customText.trim()) {
+      generatedText = settings.customText
     } else {
-      // For now, use sample texts. Later this will be replaced with AI-generated text
-      const randomIndex = Math.floor(Math.random() * sampleTexts.length)
-      newText = sampleTexts[randomIndex]
+      // Use sample texts and repeat if needed
+      const baseText = sampleTexts[Math.floor(Math.random() * sampleTexts.length)]
       
-      // If word count mode, limit to specified number of words
       if (settings.mode === 'words') {
-        const words = newText.split(' ')
-        newText = words.slice(0, settings.wordCount).join(' ')
+        const words = baseText.split(' ')
+        const targetWords = Math.min(settings.wordCount, words.length)
+        generatedText = words.slice(0, targetWords).join(' ')
+        
+        // If we need more words, repeat the text
+        while (generatedText.split(' ').length < settings.wordCount) {
+          generatedText += ' ' + baseText
+        }
+        generatedText = generatedText.split(' ').slice(0, settings.wordCount).join(' ')
+      } else {
+        // Time mode - use longer text
+        generatedText = baseText
+        while (generatedText.length < 500) {
+          generatedText += ' ' + baseText
+        }
       }
     }
-    setText(newText)
+    
+    setText(generatedText)
   }, [settings])
 
   // Timer logic
   useEffect(() => {
     if (startTime && !isPaused && !isFinished) {
       intervalRef.current = setInterval(() => {
-        setTimeElapsed(Date.now() - startTime)
+        const elapsed = Date.now() - startTime
+        setTimeElapsed(elapsed)
+        // Check if time limit reached
+        if (settings.mode === 'time' && elapsed >= settings.timeLimit * 1000) {
+          finishTest()
+        }
       }, 100)
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current)
     }
 
     return () => {
@@ -96,62 +105,116 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
         clearInterval(intervalRef.current)
       }
     }
-  }, [startTime, isPaused, isFinished])
+  }, [startTime, isPaused, isFinished, settings.mode, settings.timeLimit])
 
-  // Check for test completion
+  // Calculate WPM and accuracy
   useEffect(() => {
-    if (currentIndex >= text.length && startTime) {
-      finishTest()
+    if (startTime && timeElapsed > 0) {
+      const wordsTyped = countWords(userInput)
+      const minutes = timeElapsed / 60000
+      const calculatedWpm = minutes > 0 ? Math.round(wordsTyped / minutes) : 0
+      setWpm(calculatedWpm)
+      
+      const totalCharacters = userInput.length
+      const errorRate = totalCharacters > 0 ? (errors / totalCharacters) * 100 : 0
+      const calculatedAccuracy = Math.max(0, 100 - errorRate)
+      setAccuracy(Math.round(calculatedAccuracy))
     }
-  }, [currentIndex, text.length, startTime, finishTest])
+  }, [userInput, errors, timeElapsed, startTime])
 
-  // Time limit check
-  useEffect(() => {
-    if (settings.mode === 'time' && timeElapsed >= settings.timeLimit * 1000 && startTime) {
-      finishTest()
+  const startTest = useCallback(() => {
+    setStartTime(Date.now())
+    setTimeElapsed(0)
+    setIsPaused(false)
+    setPauseStartTime(null)
+    setIsFinished(false)
+    setErrors(0)
+    setUserInput('')
+    setWpm(0)
+    setAccuracy(100)
+    if (inputRef.current) {
+      inputRef.current.focus()
     }
-  }, [timeElapsed, settings.mode, settings.timeLimit, startTime, finishTest])
+  }, [])
+
+  const pauseTest = useCallback(() => {
+    if (isPaused) {
+      // Resuming - adjust startTime to account for pause duration
+      if (pauseStartTime && startTime) {
+        const pauseDuration = Date.now() - pauseStartTime
+        setStartTime(startTime + pauseDuration)
+      }
+      setPauseStartTime(null)
+    } else {
+      // Pausing - record when pause started
+      setPauseStartTime(Date.now())
+    }
+    setIsPaused(!isPaused)
+  }, [isPaused, pauseStartTime, startTime])
+
+  const finishTest = useCallback(() => {
+    setIsFinished(true)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+    
+    const finalStats = {
+      wpm,
+      accuracy,
+      timeElapsed,
+      errors,
+      charactersTyped: userInput.length
+    }
+    
+    onFinish(finalStats)
+  }, [wpm, accuracy, timeElapsed, errors, userInput.length, onFinish])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    
-    if (!startTime) {
-      setStartTime(Date.now())
+    if (!startTime && value.length > 0) {
+      startTest()
     }
-
-    if (value.length <= text.length) {
-      setUserInput(value)
-      setCurrentIndex(value.length)
-      
-      // Count errors
-      let newErrors = 0
-      for (let i = 0; i < value.length; i++) {
-        if (value[i] !== text[i]) {
-          newErrors++
-        }
+    if (isFinished) return
+    setUserInput(value)
+    // Check for errors
+    let newErrors = 0
+    for (let i = 0; i < value.length; i++) {
+      if (value[i] !== text[i]) {
+        newErrors++
       }
-      setErrors(newErrors)
+    }
+    setErrors(newErrors)
+    // Check if test is complete
+    if (settings.mode === 'words') {
+      const wordsTyped = countWords(value)
+      if (wordsTyped >= settings.wordCount) {
+        finishTest()
+      }
+    } else if (value.length >= text.length) {
+      finishTest()
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      onReset()
+      pauseTest()
     }
   }
 
-  const togglePause = () => {
-    setIsPaused(!isPaused)
-  }
-
-  const getCharacterClass = (index: number) => {
-    if (index < currentIndex) {
-      return userInput[index] === text[index] ? 'typing-correct' : 'typing-incorrect'
-    } else if (index === currentIndex) {
-      return 'typing-current'
+  const getProgressPercentage = () => {
+    if (settings.mode === 'words') {
+      const wordsTyped = countWords(userInput)
+      return Math.min((wordsTyped / settings.wordCount) * 100, 100)
     } else {
-      return 'typing-upcoming'
+      return Math.min((userInput.length / text.length) * 100, 100)
     }
+  }
+
+  const getTimeRemaining = () => {
+    if (settings.mode !== 'time') return null
+    const remaining = Math.max(0, settings.timeLimit * 1000 - timeElapsed)
+    const seconds = Math.ceil(remaining / 1000)
+    return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
   }
 
   const formatTime = (ms: number) => {
@@ -161,103 +224,230 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  const progress = text.length > 0 ? (currentIndex / text.length) * 100 : 0
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-4xl mx-auto space-y-6"
-    >
-      {/* Header with stats */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2 text-gray-400">
-            <Clock className="w-5 h-5" />
-            <span className="font-mono">
-              {formatTime(timeElapsed)}
-              {settings.mode === 'time' && (
-                <span className="text-gray-600"> / {settings.timeLimit}s</span>
-              )}
-            </span>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header with controls */}
+      <div className={`card ${
+        settings.theme === 'dark' 
+          ? 'bg-gray-800 border-gray-700' 
+          : 'bg-white border-gray-200 shadow-lg'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="text-sm">
+              <span className={settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Mode: </span>
+              <span className={`font-semibold ${
+                settings.theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+              }`}>
+                {settings.mode === 'time' ? `${settings.timeLimit}s` : 
+                 settings.mode === 'words' ? `${settings.wordCount} words` : 'Custom'}
+              </span>
+            </div>
+            
+            {startTime && (
+              <div className="text-sm">
+                <span className={settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Time: </span>
+                <span className={`font-mono font-semibold ${
+                  settings.theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+                }`}>
+                  {formatTime(timeElapsed)}
+                </span>
+              </div>
+            )}
+            
+            {getTimeRemaining() && (
+              <div className="text-sm">
+                <span className={settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Remaining: </span>
+                <span className={`font-mono font-semibold ${
+                  getTimeRemaining() === '0:00' ? 'text-red-400' : 
+                  settings.theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+                }`}>
+                  {getTimeRemaining()}
+                </span>
+              </div>
+            )}
           </div>
-          
-          <div className="flex items-center space-x-2 text-gray-400">
-            <Target className="w-5 h-5" />
-            <span className="font-mono">
-              {Math.round(progress)}%
-            </span>
-          </div>
-        </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={togglePause}
-            className="btn-secondary flex items-center space-x-2"
-            disabled={isFinished}
-          >
-            <Pause className="w-4 h-4" />
-            <span>{isPaused ? 'Resume' : 'Pause'}</span>
-          </button>
-          
-          <button
-            onClick={onReset}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="w-full bg-gray-800 rounded-full h-2">
-        <motion.div
-          className="bg-primary-500 h-2 rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-
-      {/* Typing area */}
-      <div className="card min-h-[200px] relative">
-        <div className="typing-text whitespace-pre-wrap leading-relaxed">
-          {text.split('').map((char, index) => (
-            <span
-              key={index}
-              className={`${getCharacterClass(index)} ${
-                char === ' ' ? 'bg-gray-700/30' : ''
+          <div className="flex items-center space-x-2">
+            {startTime && (
+              <button
+                onClick={pauseTest}
+                className={`p-2 rounded-lg transition-colors ${
+                  settings.theme === 'dark'
+                    ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+                title={isPaused ? 'Resume' : 'Pause'}
+              >
+                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+              </button>
+            )}
+            
+            <button
+              onClick={onReset}
+              className={`p-2 rounded-lg transition-colors ${
+                settings.theme === 'dark'
+                  ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
               }`}
+              title="Reset"
             >
-              {char}
-            </span>
-          ))}
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        
-        {/* Hidden input for capturing keystrokes */}
+
+        {/* Progress bar */}
+        <div className="mt-4">
+          <div className={`w-full h-2 rounded-full ${
+            settings.theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+          }`}>
+            <motion.div
+              className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${getProgressPercentage()}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+          <div className="flex justify-between text-xs mt-1">
+            <span className={settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+              Progress: {getProgressPercentage().toFixed(1)}%
+            </span>
+            <span className={settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+              {settings.mode === 'words' 
+                ? `${countWords(userInput)}/${settings.wordCount} words`
+                : `${userInput.length}/${text.length} characters`
+              }
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Live stats */}
+      {startTime && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className={`card text-center ${
+            settings.theme === 'dark' 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-gray-200 shadow-lg'
+          }`}>
+            <div className={`text-2xl font-bold ${
+              wpm >= 80 ? 'text-green-400' : 
+              wpm >= 60 ? 'text-yellow-400' : 
+              wpm >= 40 ? 'text-blue-400' : 
+              settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {wpm}
+            </div>
+            <div className={`text-xs ${
+              settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>WPM</div>
+          </div>
+          
+          <div className={`card text-center ${
+            settings.theme === 'dark' 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-gray-200 shadow-lg'
+          }`}>
+            <div className={`text-2xl font-bold ${
+              accuracy >= 95 ? 'text-green-400' : 
+              accuracy >= 85 ? 'text-yellow-400' : 'text-red-400'
+            }`}>
+              {accuracy}%
+            </div>
+            <div className={`text-xs ${
+              settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>Accuracy</div>
+          </div>
+          
+          <div className={`card text-center ${
+            settings.theme === 'dark' 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-gray-200 shadow-lg'
+          }`}>
+            <div className={`text-2xl font-bold ${
+              settings.theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+            }`}>
+              {errors}
+            </div>
+            <div className={`text-xs ${
+              settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>Errors</div>
+          </div>
+          
+          <div className={`card text-center ${
+            settings.theme === 'dark' 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-gray-200 shadow-lg'
+          }`}>
+            <div className={`text-2xl font-bold ${
+              settings.theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+            }`}>
+              {userInput.length}
+            </div>
+            <div className={`text-xs ${
+              settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}>Characters</div>
+          </div>
+        </div>
+      )}
+
+      {/* Text display */}
+      <div className={`card p-6 ${
+        settings.theme === 'dark' 
+          ? 'bg-gray-800 border-gray-700' 
+          : 'bg-white border-gray-200 shadow-lg'
+      }`}>
+        <div className={`text-lg leading-relaxed font-mono ${
+          settings.theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+        }`}>
+          {text.split('').map((char, index) => {
+            let className = ''
+            if (index < userInput.length) {
+              if (userInput[index] === char) {
+                className = 'text-green-400'
+              } else {
+                className = 'text-red-400 bg-red-400/20'
+              }
+            } else if (index === userInput.length) {
+              className = `${settings.theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'} ${settings.theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`
+            }
+            return (
+              <span key={index} className={className}>
+                {char}
+              </span>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Input field */}
+      <div className="card p-4">
+        <label htmlFor="typing-input" className="sr-only">Typing Input</label>
         <input
+          id="typing-input"
+          name="typing-input"
           ref={inputRef}
           type="text"
           value={userInput}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          className="absolute inset-0 opacity-0 cursor-default"
-          autoFocus
           disabled={isPaused || isFinished}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
+          placeholder={isPaused ? "Press ESC to resume..." : "Start typing here..."}
+          className={`w-full p-4 text-lg font-mono border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors ${
+            settings.theme === 'dark'
+              ? 'bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500 focus:border-primary-500'
+              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-primary-500'
+          } ${isPaused ? 'opacity-50' : ''}`}
         />
+        <div className={`text-sm mt-2 ${
+          settings.theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+        }`}>
+          Press ESC to pause/resume • Type to start the test
+        </div>
       </div>
-
-      {/* Instructions */}
-      <div className="text-center text-gray-400 text-sm">
-        <p>Type the text above. Press <kbd className="px-2 py-1 bg-gray-800 rounded text-xs">ESC</kbd> to reset.</p>
-      </div>
-    </motion.div>
+    </div>
   )
 }
 
-export default TypingTest 
+export default TypingTest

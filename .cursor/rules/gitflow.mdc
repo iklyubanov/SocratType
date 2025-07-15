@@ -1,7 +1,7 @@
 ---
-description: Gitflow Workflow Rules. These rules should be applied when performing git operations.
+description: Git Workflow Rules. These rules should be applied when performing git operations.
 ---
-# Gitflow Workflow Rules
+# Git Workflow Rules
 
 ## Main Branches
 
