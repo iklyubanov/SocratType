@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Pause, Play, RotateCcw, X } from 'lucide-react'
+import { Pause, Play, RotateCcw } from 'lucide-react'
 
 interface TestSettings {
   mode: 'time' | 'words' | 'custom'
@@ -35,9 +35,9 @@ const sampleTexts = [
 const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) => {
   const [text, setText] = useState('')
   const [userInput, setUserInput] = useState('')
-  const [currentIndex, setCurrentIndex] = useState(0)
   const [errors, setErrors] = useState(0)
   const [startTime, setStartTime] = useState<number | null>(null)
+  const [pauseStartTime, setPauseStartTime] = useState<number | null>(null)
   const [isPaused, setIsPaused] = useState(false)
   const [timeElapsed, setTimeElapsed] = useState(0)
   const [wpm, setWpm] = useState(0)
@@ -87,12 +87,10 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
   // Timer logic
   useEffect(() => {
-    console.log('Timer useEffect:', { startTime, isPaused, isFinished, timeElapsed })
     if (startTime && !isPaused && !isFinished) {
       intervalRef.current = setInterval(() => {
         const elapsed = Date.now() - startTime
         setTimeElapsed(elapsed)
-        console.log('Timer tick:', elapsed)
         // Check if time limit reached
         if (settings.mode === 'time' && elapsed >= settings.timeLimit * 1000) {
           finishTest()
@@ -111,7 +109,6 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
   // Calculate WPM and accuracy
   useEffect(() => {
-    console.log('WPM/Accuracy useEffect:', { userInput, errors, timeElapsed, startTime })
     if (startTime && timeElapsed > 0) {
       const wordsTyped = countWords(userInput)
       const minutes = timeElapsed / 60000
@@ -126,12 +123,11 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
   }, [userInput, errors, timeElapsed, startTime])
 
   const startTest = useCallback(() => {
-    console.log('startTest called')
     setStartTime(Date.now())
     setTimeElapsed(0)
     setIsPaused(false)
+    setPauseStartTime(null)
     setIsFinished(false)
-    setCurrentIndex(0)
     setErrors(0)
     setUserInput('')
     setWpm(0)
@@ -142,8 +138,19 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
   }, [])
 
   const pauseTest = useCallback(() => {
+    if (isPaused) {
+      // Resuming - adjust startTime to account for pause duration
+      if (pauseStartTime && startTime) {
+        const pauseDuration = Date.now() - pauseStartTime
+        setStartTime(startTime + pauseDuration)
+      }
+      setPauseStartTime(null)
+    } else {
+      // Pausing - record when pause started
+      setPauseStartTime(Date.now())
+    }
     setIsPaused(!isPaused)
-  }, [isPaused])
+  }, [isPaused, pauseStartTime, startTime])
 
   const finishTest = useCallback(() => {
     setIsFinished(true)
@@ -164,9 +171,7 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    console.log('Input changed:', value)
     if (!startTime && value.length > 0) {
-      console.log('Calling startTest()')
       startTest()
     }
     if (isFinished) return
@@ -445,4 +450,4 @@ const TypingTest: React.FC<TypingTestProps> = ({ settings, onFinish, onReset }) 
   )
 }
 
-export default TypingTest 
+export default TypingTest
